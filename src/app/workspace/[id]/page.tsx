@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, use, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { Menu, Columns2, Maximize2, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabaseClient';
@@ -12,12 +12,21 @@ import PreviewSandbox from '@/components/PreviewSandbox';
 import type { Message, Project, Profile, AdvancedSettings, ProjectCode } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
-interface PageParams {
-  id: string;
+export default function WorkspacePage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-neutral-950 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <WorkspaceInner />
+    </Suspense>
+  );
 }
 
-export default function WorkspacePage({ params }: { params: Promise<PageParams> }) {
-  const { id: projectId } = use(params);
+function WorkspaceInner() {
+  const params = useParams();
+  const projectId = (params?.id as string) ?? 'demo';
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
