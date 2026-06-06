@@ -1,0 +1,60 @@
+// ============================================================
+// EMERGENT 2.0 — Prisma Schema (optional, for reference)
+// Primary DB is managed via Supabase.
+// Run: npx prisma generate && npx prisma db push
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id        String    @id @db.Uuid
+  username  String?
+  email     String?
+  credits   Decimal   @default(10.00) @db.Decimal(10, 2)
+  avatarUrl String?   @map("avatar_url")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  projects  Project[]
+
+  @@map("profiles")
+}
+
+model Project {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  name      String    @default("Nuovo Progetto")
+  slug      String?   @unique
+  code      Json?
+  published Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user      Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model Message {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  role        String
+  content     String
+  fileChanges Json?     @map("file_changes")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("messages")
+}
