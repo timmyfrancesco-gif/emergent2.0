@@ -364,7 +364,7 @@ function WorkspaceInner() {
         {/* Preview */}
         {showPreview && (
           <div className={cn(
-            'transition-all duration-300 ease-in-out',
+            'transition-all duration-300 ease-in-out h-full',
             'w-full sm:w-1/2 sm:border-l sm:border-neutral-800'
           )}>
             <PreviewSandbox
