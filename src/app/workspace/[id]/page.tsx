@@ -167,13 +167,18 @@ function WorkspaceInner() {
 
     // Progressive generation steps shown while code is being generated
     const STEPS = [
-      '🔍 Analizzo la tua richiesta...',
-      '🏗️ Progetto l\'architettura...',
-      '⚡ Scrivo il codice...',
-      '🎨 Stilo l\'interfaccia...',
-      '✨ Rifinisco i dettagli...',
+      '🔍 Analizzo la richiesta e ricerco le best practice...',
+      '🏗️ Progetto l\'architettura dell\'applicazione...',
+      '🎨 Definisco design system, tipografia e palette colori...',
+      '⚡ Implemento la struttura HTML semantica...',
+      '🧩 Costruisco i componenti dell\'interfaccia...',
+      '💅 Applico stili avanzati e microinterazioni...',
+      '📱 Ottimizzo per tutti i dispositivi mobili...',
+      '🔗 Aggiungo interazioni e comportamenti JavaScript...',
+      '🔍 Revisione critica — controllo ogni sezione...',
+      '✨ Ultime finiture — quasi pronto...',
     ];
-    const DELAYS = [1400, 1700, 2300, 1600, 1000];
+    const DELAYS = [4000, 4200, 4500, 3800, 4200, 4500, 3800, 3800, 3200, 2500];
 
     setGenerationStep(STEPS[0]);
 
