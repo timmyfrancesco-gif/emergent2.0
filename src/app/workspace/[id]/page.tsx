@@ -28,9 +28,14 @@ export default function WorkspacePage() {
 
 function WorkspaceInner() {
   const params = useParams();
-  const projectId = (params?.id as string) ?? 'demo';
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // On GitHub Pages (static export) we always land on /workspace/demo
+  // and pass the real project UUID as ?id=... query param.
+  // On Vercel/SSR the UUID is part of the URL path instead.
+  const queryId = searchParams?.get('id');
+  const projectId = queryId ?? (params?.id as string) ?? 'demo';
   const supabase = createClient();
 
   const [profile, setProfile] = useState<Profile | null>(null);

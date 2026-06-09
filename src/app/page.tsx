@@ -111,7 +111,9 @@ export default function HomePage() {
       updated_at: new Date().toISOString(),
     });
 
-    router.push(`/workspace/${id}?prompt=${encodeURIComponent(prompt)}`);
+    // Use /workspace/demo as the static shell; pass real UUID as query param
+    // so GitHub Pages (static export) always finds the pre-generated page
+    router.push(`/workspace/demo?id=${id}&prompt=${encodeURIComponent(prompt)}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
