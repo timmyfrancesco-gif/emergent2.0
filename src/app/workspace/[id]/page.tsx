@@ -14,6 +14,17 @@ import PreviewSandbox from '@/components/PreviewSandbox';
 import type { Message, Project, Profile, AdvancedSettings, ProjectCode } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
+function buildClarifyQuestion(prompt: string): string {
+  const p = prompt.toLowerCase().trim();
+  if (/app|applicazione/.test(p)) {
+    return `Ottima idea! Per creare un'app che funzioni davvero bene ho bisogno di qualche dettaglio:\n\n• Cosa deve fare esattamente? (es. gestire prenotazioni, vendere prodotti, tracciare attività...)\n• Chi sono gli utenti principali?\n• Hai funzionalità specifiche in mente?\n\nRispondimi e comincio subito a costruirla!`;
+  }
+  if (/sito|website|web|pagina/.test(p)) {
+    return `Perfetto! Per creare un sito che funzioni davvero bene dimmi:\n\n• È per un'azienda, portfolio personale, blog o e-commerce?\n• Hai un settore o argomento specifico?\n• Che tipo di contenuti dovrà avere?\n\nCon questi dettagli creo qualcosa di professionale!`;
+  }
+  return `Interessante! Puoi darmi qualche dettaglio in più?\n\n• Qual è lo scopo principale del progetto?\n• Chi sono gli utenti?\n• Hai funzionalità o sezioni specifiche in mente?\n\nPiù mi dici, meglio riesco a costruirlo!`;
+}
+
 export default function WorkspacePage() {
   return (
     <Suspense fallback={
@@ -50,6 +61,7 @@ function WorkspaceInner() {
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(true);
   const [credits, setCredits] = useState(10);
   const [initialPromptSent, setInitialPromptSent] = useState(false);
+  const [generationStep, setGenerationStep] = useState<string | null>(null);
 
   // Load local state
   useEffect(() => {
@@ -129,13 +141,45 @@ function WorkspaceInner() {
     setMessages(prev => [...prev, userMsg]);
     setIsGenerating(true);
 
-    // Get current code for context
+    // Ask for clarification on very vague prompts
+    const wordCount = content.trim().split(/\s+/).length;
+    const hasKeyword = /netflix|stream|film|serie|shop|store|ecommerce|negozio|dashboard|analytic|metric|admin|blog|articol|post|todo|task|chat|messag|landing|startup|saas|portfolio|ristorante|restaurant|booking|prenot|social|forum|news/i.test(content);
+
+    if (wordCount < 4 && !hasKeyword) {
+      await new Promise(r => setTimeout(r, 600));
+      const clarifyMsg: Message = {
+        id: uuidv4(),
+        project_id: projectId,
+        role: 'assistant',
+        content: buildClarifyQuestion(content),
+        file_changes: null,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, clarifyMsg]);
+      const st = localStore.getState(projectId);
+      localStore.saveState(projectId, {
+        messages: [...st.messages, userMsg, clarifyMsg],
+        code: st.code,
+      });
+      setIsGenerating(false);
+      return;
+    }
+
+    // Progressive generation steps shown while code is being generated
+    const STEPS = [
+      '🔍 Analizzo la tua richiesta...',
+      '🏗️ Progetto l\'architettura...',
+      '⚡ Scrivo il codice...',
+      '🎨 Stilo l\'interfaccia...',
+      '✨ Rifinisco i dettagli...',
+    ];
+    const DELAYS = [1400, 1700, 2300, 1600, 1000];
+
+    setGenerationStep(STEPS[0]);
+
+    // Start generation immediately in parallel with the step animation
     const existingCode = localStore.getState(projectId).code?.files;
-
-    try {
-      let generated;
-
-      // Try API route first (works in production/Vercel)
+    const generatePromise = (async () => {
       try {
         const res = await fetch('/api/generate', {
           method: 'POST',
@@ -144,18 +188,24 @@ function WorkspaceInner() {
         });
         if (res.ok) {
           const json = await res.json();
-          if (json?.files?.length) generated = json;
+          if (json?.files?.length) return json;
         }
-      } catch {
-        // API not available (static deployment or network error)
+      } catch { /* API not available */ }
+      return generateDemoResponse(content);
+    })();
+
+    try {
+      // Animate through steps while generation runs in parallel
+      for (let i = 1; i < STEPS.length; i++) {
+        await new Promise(r => setTimeout(r, DELAYS[i - 1]));
+        setGenerationStep(STEPS[i]);
       }
 
-      // Fallback: client-side demo generator
-      if (!generated) {
-        // Simulate a thinking delay
-        await new Promise(r => setTimeout(r, 1200));
-        generated = generateDemoResponse(content);
-      }
+      const generated = await generatePromise;
+
+      // Brief pause on final step before revealing result
+      await new Promise(r => setTimeout(r, DELAYS[STEPS.length - 1]));
+      setGenerationStep(null);
 
       const assistantMsg: Message = {
         id: uuidv4(),
@@ -168,13 +218,11 @@ function WorkspaceInner() {
 
       setMessages(prev => [...prev, assistantMsg]);
 
-      // Update project code
       const newCode: ProjectCode = {
         files: generated.files,
         lastUpdated: new Date().toISOString(),
       };
 
-      // Save to localStorage
       localStore.saveState(projectId, {
         messages: [...localStore.getState(projectId).messages, userMsg, assistantMsg],
         code: newCode,
@@ -192,7 +240,6 @@ function WorkspaceInner() {
       setPreviewReady(true);
       setCredits(prev => Math.max(0, prev - COST));
 
-      // Auto-open preview on first generation
       if (!showPreview) {
         setShowPreview(true);
       }
@@ -209,6 +256,7 @@ function WorkspaceInner() {
       setMessages(prev => [...prev, errMsg]);
       localStore.addMessage(projectId, errMsg);
     } finally {
+      setGenerationStep(null);
       setIsGenerating(false);
     }
   }, [isGenerating, projectId, showPreview]);
@@ -298,6 +346,7 @@ function WorkspaceInner() {
           <ChatInterface
             messages={messages}
             isGenerating={isGenerating}
+            generationStep={generationStep}
             credits={credits}
             onSendMessage={handleSendMessage}
             onPreviewOpen={() => setShowPreview(true)}

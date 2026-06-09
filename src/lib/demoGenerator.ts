@@ -8,34 +8,41 @@ export function generateDemoResponse(prompt: string): GenerateResponse {
   const isEcommerce = /shop|store|ecommerce|e-commerce|prodott|acquist|cart|negozio/i.test(p);
   const isDashboard = /dashboard|analytic|metric|statistic|chart|admin|pannello/i.test(p);
   const isBlog = /blog|articol|post|cms|notizie|news/i.test(p);
-  const isLanding = /landing|marketing|startup|saas|prodotto|product/i.test(p);
   const isTodo = /todo|task|list|agenda|attivit/i.test(p);
   const isChat = /chat|messag|discord|whatsapp|telegram/i.test(p);
+  const isPortfolio = /portfolio|cv|curriculum|personal|developer|designer|freelance/i.test(p);
+  const isRestaurant = /ristorante|restaurant|food|menu|pizz|caffe|bar|cucina/i.test(p);
 
   let html: string;
   let description: string;
 
   if (isNetflix) {
     html = netflixTemplate(prompt);
-    description = 'Interfaccia streaming con griglia di contenuti e hero banner';
+    description = 'Ho creato un\'interfaccia streaming in stile Netflix con hero banner, griglia contenuti e overlay interattivi sulle card. Prova a passarci sopra con il mouse!';
   } else if (isEcommerce) {
     html = ecommerceTemplate(prompt);
-    description = 'Negozio online con griglia prodotti e carrello';
+    description = 'Ho creato un negozio online completo con hero, griglia prodotti con hover effect e pulsante "Aggiungi al carrello" funzionante. Clicca su un prodotto per testarlo!';
   } else if (isDashboard) {
     html = dashboardTemplate(prompt);
-    description = 'Dashboard analytics con metriche e grafici';
+    description = 'Ho creato una dashboard analytics con sidebar di navigazione, 4 KPI cards, grafico a barre animato e tabella ordini recenti. Completamente responsiva su mobile.';
   } else if (isBlog) {
     html = blogTemplate(prompt);
-    description = 'Blog/CMS con lista articoli e hero';
+    description = 'Ho creato un blog moderno con hero scuro, griglia articoli con card animate e sezione newsletter funzionante. Clicca "Iscriviti" per testarlo!';
   } else if (isTodo) {
     html = todoTemplate(prompt);
-    description = 'App todo list con gestione attività';
+    description = 'Ho creato un\'app todo completamente funzionale: aggiungi task, completale, filtra per stato e monitora il progresso con la barra. Prova ad aggiungere una task!';
   } else if (isChat) {
     html = chatTemplate(prompt);
-    description = 'Interfaccia chat in tempo reale';
+    description = 'Ho creato un\'app di messaggistica con sidebar contatti, area chat con messaggi animati e risposta automatica simulata. Scrivi un messaggio e aspetta la risposta!';
+  } else if (isPortfolio) {
+    html = portfolioTemplate(prompt);
+    description = 'Ho creato un portfolio personale con hero animato, sezione progetti con griglia, skills e form di contatto. Ottimizzato per impressionare i clienti!';
+  } else if (isRestaurant) {
+    html = restaurantTemplate(prompt);
+    description = 'Ho creato un sito ristorante elegante con hero, menu completo con categorie, galleria e sezione prenotazioni. Prova il pulsante "Prenota un tavolo"!';
   } else {
     html = landingTemplate(prompt);
-    description = 'Landing page moderna con hero e sezioni';
+    description = 'Ho creato una landing page moderna con hero gradient, 6 feature cards, sezione prezzi con 3 piani e footer. Ottimizzata per conversioni e completamente responsiva.';
   }
 
   return {
@@ -172,7 +179,7 @@ nav{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 24px;height:64px;d
 .banner{background:#f0fdf4;border:1px solid #bbf7d0;padding:20px 24px;border-radius:16px;display:flex;align-items:center;gap:12px;margin:0 24px 48px;max-width:1200px;margin:0 auto 48px}
 @media(max-width:768px){.grid{grid-template-columns:repeat(2,1fr)}.nav-center{display:none}}
 </style></head><body>
-<nav><div class="logo">SHOPIFY</div>
+<nav><div class="logo">BOUTIQUE</div>
 <div class="nav-center"><a>Donna</a><a>Uomo</a><a>Accessori</a><a>Saldi</a></div>
 <button class="cart-btn">🛒 Carrello (0)</button></nav>
 <section class="hero">
@@ -666,6 +673,221 @@ ${[['⚡','Velocissimo','Build istantanee con AI. Nessun tempo di attesa.'],['�
 </div></div>
 <footer class="footer"><div>© 2025 ${escHtml(title.split(' ')[0])||'Emergent'}. Tutti i diritti riservati.</div>
 <div style="display:flex;gap:20px"><a style="cursor:pointer">Privacy</a><a style="cursor:pointer">Termini</a><a style="cursor:pointer">Contatti</a></div></footer>
+</body></html>`;
+}
+
+function portfolioTemplate(prompt: string): string {
+  const projects = [
+    { title: 'E-commerce Platform', desc: 'Full-stack shop con React e Node.js', tags: ['React','Node','MongoDB'], color: '#6366f1' },
+    { title: 'AI Dashboard', desc: 'Analytics real-time con integrazione ML', tags: ['Python','D3.js','FastAPI'], color: '#22c55e' },
+    { title: 'Mobile Banking App', desc: 'App finanziaria con React Native', tags: ['React Native','Supabase'], color: '#f59e0b' },
+    { title: 'SaaS Landing Page', desc: 'Landing ad alta conversione per startup', tags: ['Next.js','Tailwind'], color: '#ec4899' },
+  ];
+  return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escHtml(prompt.slice(0,50))}</title>
+<style>${baseStyles}
+:root{--accent:#6366f1}
+body{background:#09090b;color:#e4e4e7}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(12px);background:rgba(9,9,11,.8);border-bottom:1px solid rgba(255,255,255,.06);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:900;font-size:1.1rem;background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;gap:28px;font-size:14px;color:#71717a}
+.nav-links a:hover{color:#fff;cursor:pointer;transition:color .2s}
+.hire-btn{background:var(--accent);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+.hire-btn:hover{background:#4f46e5}
+.hero{min-height:100vh;display:flex;align-items:center;padding:0 40px;max-width:1100px;margin:0 auto;gap:60px}
+.hero-left{flex:1}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#a78bfa;padding:6px 14px;border-radius:9999px;font-size:13px;margin-bottom:24px}
+.hero-tag-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.hero h1{font-size:clamp(2.5rem,5vw,4rem);font-weight:900;line-height:1.1;margin-bottom:16px}
+.hero h1 span{background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:#71717a;font-size:1.05rem;line-height:1.7;margin-bottom:32px;max-width:480px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{background:var(--accent);color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:#4f46e5;transform:translateY(-2px)}
+.btn-secondary{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.1);padding:13px 28px;border-radius:10px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-secondary:hover{background:rgba(255,255,255,.1)}
+.skills-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
+.skill{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#a1a1aa;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500}
+.hero-right{flex-shrink:0}
+.avatar-box{width:280px;height:280px;border-radius:24px;background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(96,165,250,.2));border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;font-size:6rem;position:relative}
+.avatar-badge{position:absolute;bottom:-12px;right:-12px;background:#18181b;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;font-size:12px;font-weight:700;color:#22c55e;white-space:nowrap}
+.section{max-width:1100px;margin:0 auto;padding:80px 40px}
+.section-label{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.15em;margin-bottom:12px}
+.section h2{font-size:clamp(1.75rem,3vw,2.5rem);font-weight:800;margin-bottom:40px}
+.projects-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.project-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;cursor:pointer;transition:all .25s}
+.project-card:hover{background:rgba(255,255,255,.06);border-color:rgba(99,102,241,.3);transform:translateY(-4px)}
+.project-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:16px}
+.project-card h3{font-size:1.05rem;font-weight:700;margin-bottom:8px;color:#fff}
+.project-card p{font-size:.875rem;color:#71717a;line-height:1.6;margin-bottom:16px}
+.project-tags{display:flex;gap:6px;flex-wrap:wrap}
+.project-tag{background:rgba(255,255,255,.06);color:#a1a1aa;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:500}
+.contact{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(96,165,250,.08));border:1px solid rgba(99,102,241,.2);border-radius:24px;padding:60px;text-align:center;max-width:700px;margin:0 auto}
+.contact h2{font-size:2rem;font-weight:800;margin-bottom:12px}
+.contact p{color:#71717a;margin-bottom:32px}
+.contact-form{display:flex;flex-direction:column;gap:12px;max-width:400px;margin:0 auto}
+.form-input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:#52525b}
+.submit-btn{background:var(--accent);color:#fff;padding:13px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:background .2s}
+.submit-btn:hover{background:#4f46e5}
+@media(max-width:768px){.hero{flex-direction:column;padding:100px 24px 60px;text-align:center}.hero-right{display:none}.projects-grid{grid-template-columns:1fr}.nav-links{display:none}.section{padding:60px 24px}.hero-actions{justify-content:center}}
+</style></head><body>
+<nav>
+  <div class="logo">devname.io</div>
+  <div class="nav-links"><a>Chi sono</a><a>Progetti</a><a>Skills</a><a>Contatti</a></div>
+  <button class="hire-btn" onclick="document.querySelector('.contact').scrollIntoView({behavior:'smooth'})">Assumimi →</button>
+</nav>
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag"><div class="hero-tag-dot"></div>Disponibile per nuovi progetti</div>
+    <h1>Ciao, sono<br/><span>Full-Stack Developer</span></h1>
+    <p>Creo applicazioni web moderne, veloci e scalabili. Da startup a enterprise, trasformo idee in prodotti digitali che funzionano davvero.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.querySelector('.projects-grid').scrollIntoView({behavior:'smooth'})">Vedi i miei progetti</button>
+      <button class="btn-secondary">Scarica CV</button>
+    </div>
+    <div class="skills-row">
+      ${['React','Next.js','TypeScript','Node.js','Python','PostgreSQL','Tailwind','Docker'].map(s=>`<span class="skill">${s}</span>`).join('')}
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="avatar-box">👨‍💻<div class="avatar-badge">🟢 Open to work</div></div>
+  </div>
+</section>
+<div class="section">
+  <div class="section-label">Portfolio</div>
+  <h2>Progetti recenti</h2>
+  <div class="projects-grid">
+    ${projects.map(p=>`<div class="project-card">
+      <div class="project-icon" style="background:${p.color}22">${p.color==='#6366f1'?'🛒':p.color==='#22c55e'?'📊':p.color==='#f59e0b'?'📱':'🚀'}</div>
+      <h3>${p.title}</h3><p>${p.desc}</p>
+      <div class="project-tags">${p.tags.map(t=>`<span class="project-tag">${t}</span>`).join('')}</div>
+    </div>`).join('')}
+  </div>
+</div>
+<div class="section">
+  <div class="contact">
+    <h2>Lavoriamo insieme?</h2>
+    <p>Sono disponibile per progetti freelance, consulenze e posizioni full-time.</p>
+    <div class="contact-form">
+      <input class="form-input" placeholder="Il tuo nome" type="text">
+      <input class="form-input" placeholder="La tua email" type="email">
+      <textarea class="form-input" placeholder="Raccontami del tuo progetto..." rows="4" style="resize:none"></textarea>
+      <button class="submit-btn" onclick="this.textContent='✓ Messaggio inviato!'">Invia messaggio</button>
+    </div>
+  </div>
+</div>
+</body></html>`;
+}
+
+function restaurantTemplate(prompt: string): string {
+  const menuItems = {
+    antipasti: [
+      { name: 'Bruschetta al pomodoro', desc: 'Pane tostato, pomodorini, basilico fresco', price: '€8' },
+      { name: 'Tagliere misto', desc: 'Salumi DOP, formaggi stagionati, miele', price: '€16' },
+      { name: 'Carpaccio di manzo', desc: 'Rucola, grana, limone e olio EVO', price: '€14' },
+    ],
+    primi: [
+      { name: 'Spaghetti cacio e pepe', desc: 'Ricetta romana tradizionale', price: '€14' },
+      { name: 'Risotto ai funghi porcini', desc: 'Porcini freschi, burro, parmigiano', price: '€16' },
+      { name: 'Pappardelle al ragù', desc: 'Ragù di cinghiale, 4 ore di cottura', price: '€15' },
+    ],
+    secondi: [
+      { name: 'Bistecca alla fiorentina', desc: 'Chianina IGP, al sangue, 600g', price: '€38' },
+      { name: 'Branzino all\'acqua pazza', desc: 'Pomodorini, capperi, olive', price: '€24' },
+      { name: 'Pollo alla cacciatora', desc: 'Olive, rosmarino, pomodoro', price: '€18' },
+    ],
+  };
+
+  return `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escHtml(prompt.slice(0,50))}</title>
+<style>${baseStyles}
+body{background:#0c0a09;color:#e7e5e4;font-family:'Georgia',serif}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(12,10,9,.9);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08);padding:0 48px;height:72px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:1.4rem;font-weight:700;letter-spacing:.05em;color:#d4af37}
+.nav-links{display:flex;gap:28px;font-size:14px;color:#a8a29e;font-family:sans-serif}
+.nav-links a:hover{color:#fff;cursor:pointer;transition:color .2s}
+.book-btn{background:#d4af37;color:#0c0a09;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:sans-serif;letter-spacing:.05em;transition:background .2s}
+.book-btn:hover{background:#b8942a}
+.hero{height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 24px;background:linear-gradient(to bottom,rgba(12,10,9,0) 0%,rgba(12,10,9,.7) 60%,rgba(12,10,9,1) 100%),url('https://picsum.photos/1920/1080?random=5') center/cover no-repeat;position:relative}
+.hero-content{position:relative;z-index:1}
+.hero-label{font-family:sans-serif;font-size:12px;font-weight:600;letter-spacing:.25em;color:#d4af37;text-transform:uppercase;margin-bottom:20px}
+.hero h1{font-size:clamp(3rem,8vw,6rem);font-weight:700;line-height:1.05;margin-bottom:20px;color:#fafaf9;letter-spacing:-.02em}
+.hero p{color:#a8a29e;font-size:1.1rem;font-family:sans-serif;margin-bottom:40px;max-width:500px;margin:0 auto 40px;line-height:1.6}
+.hero-actions{display:flex;gap:12px;justify-content:center}
+.btn-gold{background:#d4af37;color:#0c0a09;padding:14px 32px;border-radius:6px;font-weight:700;font-size:1rem;cursor:pointer;font-family:sans-serif;transition:all .2s}
+.btn-gold:hover{background:#b8942a;transform:translateY(-2px)}
+.btn-outline{background:transparent;border:1px solid rgba(212,175,55,.4);color:#d4af37;padding:14px 32px;border-radius:6px;font-size:1rem;cursor:pointer;font-family:sans-serif;transition:all .2s}
+.btn-outline:hover{background:rgba(212,175,55,.1)}
+.divider{text-align:center;padding:48px 0 0;color:#d4af37;letter-spacing:.2em;font-size:12px;font-family:sans-serif;text-transform:uppercase}
+.divider::before,.divider::after{content:'——————  '}
+.menu-section{max-width:900px;margin:0 auto;padding:48px 24px}
+.menu-category{margin-bottom:48px}
+.cat-title{font-size:1.5rem;letter-spacing:.05em;color:#d4af37;margin-bottom:8px;border-bottom:1px solid rgba(212,175,55,.2);padding-bottom:12px}
+.menu-items{display:flex;flex-direction:column;gap:0}
+.menu-item{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.menu-item:last-child{border-bottom:none}
+.item-info h4{font-size:1rem;font-weight:600;color:#fafaf9;margin-bottom:4px}
+.item-info p{font-size:.875rem;color:#78716c;font-family:sans-serif;line-height:1.5}
+.item-price{color:#d4af37;font-size:1rem;font-weight:600;white-space:nowrap;margin-top:2px;font-family:sans-serif}
+.booking{background:rgba(212,175,55,.05);border:1px solid rgba(212,175,55,.15);border-radius:16px;padding:48px;text-align:center;max-width:700px;margin:0 auto 80px;font-family:sans-serif}
+.booking h2{font-size:1.75rem;font-weight:700;margin-bottom:8px;color:#fafaf9}
+.booking p{color:#78716c;margin-bottom:32px}
+.booking-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.form-input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#e7e5e4;padding:12px 16px;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:#d4af37}
+.form-input::placeholder{color:#57534e}
+footer{border-top:1px solid rgba(255,255,255,.06);padding:32px 48px;display:flex;justify-content:space-between;align-items:center;font-family:sans-serif;font-size:13px;color:#57534e}
+@media(max-width:768px){.booking-form{grid-template-columns:1fr}.nav-links{display:none}.menu-section{padding:32px 16px}}
+</style></head><body>
+<nav>
+  <div class="logo">La Trattoria</div>
+  <div class="nav-links"><a>Menu</a><a>Chi siamo</a><a>Galleria</a><a>Contatti</a></div>
+  <button class="book-btn" onclick="document.querySelector('.booking').scrollIntoView({behavior:'smooth'})">Prenota</button>
+</nav>
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-label">Dal 1987 · Cucina italiana autentica</div>
+    <h1>Sapori<br/>di casa</h1>
+    <p>Ogni piatto racconta una storia. Ingredienti freschi, ricette di famiglia, passione per la buona tavola.</p>
+    <div class="hero-actions">
+      <button class="btn-gold" onclick="document.querySelector('.booking').scrollIntoView({behavior:'smooth'})">Prenota un tavolo</button>
+      <button class="btn-outline" onclick="document.querySelector('.menu-section').scrollIntoView({behavior:'smooth'})">Scopri il menu</button>
+    </div>
+  </div>
+</section>
+<div class="divider">Il nostro menu</div>
+<div class="menu-section">
+  ${Object.entries(menuItems).map(([cat, items]) => `
+  <div class="menu-category">
+    <div class="cat-title">${cat.charAt(0).toUpperCase()+cat.slice(1)}</div>
+    <div class="menu-items">
+      ${items.map(item => `<div class="menu-item">
+        <div class="item-info"><h4>${item.name}</h4><p>${item.desc}</p></div>
+        <div class="item-price">${item.price}</div>
+      </div>`).join('')}
+    </div>
+  </div>`).join('')}
+</div>
+<div style="max-width:900px;margin:0 auto;padding:0 24px">
+  <div class="booking">
+    <h2>Prenota il tuo tavolo</h2>
+    <p>Siamo aperti dal martedì alla domenica, a pranzo e a cena. Prenotare è consigliato.</p>
+    <div class="booking-form">
+      <input class="form-input" placeholder="Nome e cognome" type="text">
+      <input class="form-input" placeholder="Numero di telefono" type="tel">
+      <input class="form-input" placeholder="Data" type="date">
+      <input class="form-input" placeholder="Numero di persone" type="number" min="1" max="20">
+    </div>
+    <button class="btn-gold" style="width:100%;padding:14px" onclick="this.textContent='✓ Prenotazione confermata! Ti ricontatteremo presto.'">Conferma prenotazione</button>
+  </div>
+</div>
+<footer>
+  <div>© 2025 La Trattoria · Via Roma 12, Milano</div>
+  <div style="display:flex;gap:20px"><span style="cursor:pointer">📍 Indicazioni</span><span style="cursor:pointer">📞 02 1234567</span></div>
+</footer>
 </body></html>`;
 }
 

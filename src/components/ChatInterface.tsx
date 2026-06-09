@@ -12,6 +12,7 @@ import AdvancedSettingsModal from './AdvancedSettingsModal';
 interface Props {
   messages: Message[];
   isGenerating: boolean;
+  generationStep?: string | null;
   credits: number;
   onSendMessage: (content: string, settings: AdvancedSettings) => Promise<void>;
   onPreviewOpen: () => void;
@@ -30,6 +31,7 @@ const DEFAULT_SETTINGS: AdvancedSettings = {
 export default function ChatInterface({
   messages,
   isGenerating,
+  generationStep,
   credits,
   onSendMessage,
   onPreviewOpen,
@@ -122,7 +124,7 @@ export default function ChatInterface({
           </div>
         ))}
 
-        {isGenerating && <TypingIndicator />}
+        {isGenerating && <TypingIndicator step={generationStep} />}
 
         <div ref={messagesEndRef} />
       </div>
@@ -311,19 +313,22 @@ function MessageBubble({
   );
 }
 
-function TypingIndicator() {
+function TypingIndicator({ step }: { step?: string | null }) {
   return (
     <div className="flex justify-start animate-fade-in">
-      <div className="bg-neutral-800/60 border border-neutral-700/40 px-4 py-3 rounded-2xl rounded-bl-md">
-        <div className="flex items-center gap-1.5">
-          {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              className="typing-dot"
-              style={{ animationDelay: `${i * 0.2}s` }}
-            />
-          ))}
-        </div>
+      <div className="bg-neutral-800/60 border border-neutral-700/40 px-4 py-3 rounded-2xl rounded-bl-md max-w-[88%]">
+        {step ? (
+          <div className="flex items-center gap-2.5">
+            <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <span key={step} className="text-sm text-neutral-300 animate-fade-in">{step}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
