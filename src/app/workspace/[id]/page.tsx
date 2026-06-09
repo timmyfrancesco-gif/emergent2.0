@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import { Menu, Columns2, Maximize2, ChevronLeft } from 'lucide-react';
+import { Menu, Columns2, LayoutPanelLeft, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabaseClient';
+import { localStore } from '@/lib/localStore';
+import { generateDemoResponse } from '@/lib/demoGenerator';
 import { generateSlug } from '@/lib/utils';
 import Sidebar from '@/components/Sidebar';
 import ChatInterface from '@/components/ChatInterface';
@@ -33,86 +35,83 @@ function WorkspaceInner() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [project, setProject] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [previewReady, setPreviewReady] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(true);
-  const [isSplitView, setIsSplitView] = useState(false);
   const [credits, setCredits] = useState(10);
+  const [initialPromptSent, setInitialPromptSent] = useState(false);
 
-  // Load user and project
+  // Load local state
   useEffect(() => {
-    async function init() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+    // Load from localStorage
+    const localProj = localStore.getProject(projectId);
+    const localState = localStore.getState(projectId);
 
-        if (user) {
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (prof) {
-            setProfile(prof);
-            setCredits(prof.credits);
-          }
+    if (localProj) {
+      setProject({ ...localProj, user_id: 'local' } as Project);
+    } else {
+      // New project — create placeholder
+      const newProj = {
+        id: projectId,
+        name: 'Nuovo Progetto',
+        slug: null,
+        code: null,
+        published: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      localStore.saveProject(newProj);
+      setProject({ ...newProj, user_id: 'local' } as Project);
+    }
 
-          const { data: projs } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false });
-          if (projs) setProjects(projs);
-        }
+    if (localState.messages.length > 0) {
+      setMessages(localState.messages);
+    }
+    if (localState.code) {
+      setPreviewReady(true);
+    }
 
-        if (projectId !== 'new' && projectId !== 'demo') {
-          const { data: proj } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('id', projectId)
-            .single();
-          if (proj) {
-            setProject(proj);
-            if (proj.code) setPreviewReady(true);
-          }
+    // Load all projects for sidebar
+    setAllProjects(localStore.getProjects().map(p => ({ ...p, user_id: 'local' } as Project)));
 
-          const { data: msgs } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: true });
-          if (msgs) setMessages(msgs);
-        }
-      } catch {
-        // Demo mode
+    // Try to load Supabase user (optional)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.from('profiles').select('*').eq('id', user.id).single()
+          .then(({ data }) => { if (data) { setProfile(data); setCredits(data.credits); } });
       }
+    }).catch(() => {});
+  }, [projectId]);
 
-      // Handle initial prompt from URL
-      const prompt = searchParams.get('prompt');
-      if (prompt) {
+  // Send initial prompt from URL once
+  useEffect(() => {
+    const prompt = searchParams?.get('prompt');
+    if (prompt && !initialPromptSent && messages.length === 0) {
+      setInitialPromptSent(true);
+      // Small delay for smooth UX
+      setTimeout(() => {
         handleSendMessage(prompt, {
           model: 'gemini-1.5-pro',
           budget: 25,
           maxxEnabled: false,
           template: '',
         });
-      }
+      }, 400);
     }
-
-    init();
-  }, [projectId]);
+  }, [searchParams, initialPromptSent, messages.length]);
 
   const handleSendMessage = useCallback(async (
     content: string,
     settings: AdvancedSettings
   ) => {
-    if (isGenerating || credits <= 0) return;
-
+    if (isGenerating) return;
     const COST = 0.5;
+
     const userMsg: Message = {
       id: uuidv4(),
       project_id: projectId,
@@ -124,42 +123,40 @@ function WorkspaceInner() {
 
     setMessages(prev => [...prev, userMsg]);
     setIsGenerating(true);
-    setCredits(prev => Math.max(0, prev - COST));
+
+    // Get current code for context
+    const existingCode = localStore.getState(projectId).code?.files;
 
     try {
-      // Persist user message
-      if (projectId !== 'demo') {
-        await supabase.from('messages').insert({
-          project_id: projectId === 'new' ? undefined : projectId,
-          role: 'user',
-          content,
-        }).then(() => {});
+      let generated;
+
+      // Try API route first (works in production/Vercel)
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: content, existingCode, model: settings.model }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.files?.length) generated = json;
+        }
+      } catch {
+        // API not available (static deployment or network error)
       }
 
-      // Generate code via API
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: content,
-          projectId: projectId !== 'new' && projectId !== 'demo' ? projectId : undefined,
-          existingCode: project?.code?.files,
-          model: settings.model,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error ?? 'Errore generazione');
+      // Fallback: client-side demo generator
+      if (!generated) {
+        // Simulate a thinking delay
+        await new Promise(r => setTimeout(r, 1200));
+        generated = generateDemoResponse(content);
       }
-
-      const generated = await res.json();
 
       const assistantMsg: Message = {
         id: uuidv4(),
         project_id: projectId,
         role: 'assistant',
-        content: generated.summary ?? 'Codice generato con successo.',
+        content: generated.summary ?? 'App generata con successo ✨',
         file_changes: generated.fileChanges ?? [],
         created_at: new Date().toISOString(),
       };
@@ -172,49 +169,27 @@ function WorkspaceInner() {
         lastUpdated: new Date().toISOString(),
       };
 
-      setProject(prev => prev
-        ? { ...prev, code: newCode }
-        : {
-            id: projectId,
-            user_id: profile?.id ?? '',
-            name: content.slice(0, 60),
-            slug: null,
-            code: newCode,
-            published: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-      );
+      // Save to localStorage
+      localStore.saveState(projectId, {
+        messages: [...localStore.getState(projectId).messages, userMsg, assistantMsg],
+        code: newCode,
+      });
 
+      const currentProj = localStore.getProject(projectId);
+      if (currentProj) {
+        const updatedName = currentProj.name === 'Nuovo Progetto'
+          ? content.slice(0, 50)
+          : currentProj.name;
+        localStore.saveProject({ ...currentProj, code: newCode, name: updatedName, updated_at: new Date().toISOString() });
+      }
+
+      setProject(prev => prev ? { ...prev, code: newCode } : prev);
       setPreviewReady(true);
+      setCredits(prev => Math.max(0, prev - COST));
 
-      // Persist to DB
-      if (projectId !== 'demo') {
-        if (projectId === 'new') {
-          // Create project
-          const { data: newProj } = await supabase
-            .from('projects')
-            .insert({ name: content.slice(0, 60), code: newCode, user_id: profile?.id })
-            .select()
-            .single();
-
-          if (newProj) {
-            router.replace(`/workspace/${newProj.id}`);
-          }
-        } else {
-          await supabase
-            .from('projects')
-            .update({ code: newCode, updated_at: new Date().toISOString() })
-            .eq('id', projectId);
-        }
-
-        // Deduct credits in DB
-        if (profile) {
-          await supabase
-            .from('profiles')
-            .update({ credits: Math.max(0, (profile.credits ?? 10) - COST) })
-            .eq('id', profile.id);
-        }
+      // Auto-open preview on first generation
+      if (!showPreview) {
+        setShowPreview(true);
       }
 
     } catch (err) {
@@ -222,119 +197,116 @@ function WorkspaceInner() {
         id: uuidv4(),
         project_id: projectId,
         role: 'assistant',
-        content: `Errore: ${err instanceof Error ? err.message : 'Qualcosa è andato storto. Riprova.'}`,
+        content: `Errore: ${err instanceof Error ? err.message : 'Riprova.'}`,
         file_changes: null,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errMsg]);
-      setCredits(prev => Math.min(prev + COST, 10)); // Refund
+      localStore.addMessage(projectId, errMsg);
     } finally {
       setIsGenerating(false);
     }
-  }, [isGenerating, credits, project, profile, projectId, router]);
+  }, [isGenerating, projectId, showPreview]);
 
   const handlePublish = async () => {
     if (!project?.code) return;
     const slug = generateSlug(project.name ?? 'app');
-
-    await supabase
-      .from('projects')
-      .update({ published: true, slug })
-      .eq('id', projectId);
-
-    setProject(prev => prev ? { ...prev, published: true, slug } : prev);
+    const updated = { ...project, published: true, slug };
+    setProject(updated);
+    const local = localStore.getProject(projectId);
+    if (local) localStore.saveProject({ ...local, published: true, slug });
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut().catch(() => {});
+    setProfile(null);
     router.push('/');
   };
 
-  const projectTitle = project?.name ?? 'Nuovo Progetto';
+  const projectTitle = project?.name === 'Nuovo Progetto' && messages.length > 0
+    ? messages[0]?.content?.slice(0, 40) ?? 'Progetto'
+    : (project?.name ?? 'Nuovo Progetto');
+
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
   return (
     <div className="h-screen bg-neutral-950 flex flex-col overflow-hidden">
       {/* Top Bar */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-neutral-800/60 bg-neutral-950 flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between px-3 py-2.5 border-b border-neutral-800/60 bg-neutral-950/95 backdrop-blur-sm flex-shrink-0">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all active:scale-95"
           >
             <Menu className="w-5 h-5" />
           </button>
           <button
             onClick={() => router.push('/')}
-            className="text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 transition-all active:scale-95"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="min-w-0">
-            <h1 className="text-sm font-semibold text-white truncate max-w-[200px] sm:max-w-none">
+          <div className="min-w-0 ml-1">
+            <h1 className="text-sm font-semibold text-white truncate max-w-[160px] sm:max-w-xs">
               {projectTitle}
             </h1>
-            <p className="text-xs text-neutral-600">
-              {credits.toFixed(2)} crediti rimanenti
-            </p>
+            {credits <= 5 && (
+              <p className="text-xs text-amber-500/80">{credits.toFixed(1)} crediti</p>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Split View Toggle */}
-          <button
-            onClick={() => setIsSplitView(prev => !prev)}
-            className={cn(
-              'hidden sm:flex w-9 h-9 items-center justify-center rounded-xl transition-colors',
-              isSplitView
-                ? 'bg-emerald-500/20 text-emerald-400'
-                : 'hover:bg-neutral-800 text-neutral-400 hover:text-white'
-            )}
-            title="Vista divisa"
-          >
-            <Columns2 className="w-5 h-5" />
-          </button>
+        <div className="flex items-center gap-1.5">
+          {/* Split view toggle (desktop) */}
+          {showPreview && (
+            <button
+              onClick={() => setShowPreview(false)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all active:scale-95"
+            >
+              <LayoutPanelLeft className="w-3.5 h-3.5" />
+              <span>Chat</span>
+            </button>
+          )}
 
-          {/* Preview Toggle */}
           <button
             onClick={() => setShowPreview(prev => !prev)}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95',
               showPreview
                 ? 'bg-white text-neutral-900'
                 : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
             )}
           >
-            <Maximize2 className="w-4 h-4" />
+            <Columns2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Preview</span>
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content — Chat + Preview split */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Chat Panel */}
+        {/* Chat */}
         <div className={cn(
-          'flex flex-col transition-all duration-300',
-          isSplitView && showPreview ? 'w-1/2' : 'w-full',
-          showPreview && !isSplitView ? 'hidden' : 'flex'
+          'flex flex-col transition-all duration-300 ease-in-out',
+          showPreview ? 'hidden sm:flex sm:w-1/2' : 'w-full'
         )}>
           <ChatInterface
             messages={messages}
             isGenerating={isGenerating}
             credits={credits}
             onSendMessage={handleSendMessage}
-            onPreviewOpen={() => { setShowPreview(true); if (!isSplitView) setIsSplitView(true); }}
+            onPreviewOpen={() => setShowPreview(true)}
             previewReady={previewReady}
             showUpgradeBanner={showUpgradeBanner}
             onDismissUpgrade={() => setShowUpgradeBanner(false)}
           />
         </div>
 
-        {/* Preview Panel */}
-        {(showPreview || isSplitView) && (
+        {/* Preview */}
+        {showPreview && (
           <div className={cn(
-            'transition-all duration-300',
-            isSplitView ? 'w-1/2 border-l border-neutral-800' : 'w-full'
+            'transition-all duration-300 ease-in-out',
+            'w-full sm:w-1/2 sm:border-l sm:border-neutral-800'
           )}>
             <PreviewSandbox
               projectId={projectId}
@@ -344,7 +316,7 @@ function WorkspaceInner() {
               onPublish={handlePublish}
               isFullscreen={isPreviewFullscreen}
               onToggleFullscreen={() => setIsPreviewFullscreen(prev => !prev)}
-              onClose={() => { setShowPreview(false); setIsSplitView(false); }}
+              onClose={() => setShowPreview(false)}
             />
           </div>
         )}
@@ -355,9 +327,9 @@ function WorkspaceInner() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         profile={profile}
-        projects={projects}
+        projects={allProjects}
         currentProjectId={projectId}
-        onNewProject={() => router.push('/workspace/new')}
+        onNewProject={() => router.push('/')}
         onLogout={handleLogout}
       />
     </div>
