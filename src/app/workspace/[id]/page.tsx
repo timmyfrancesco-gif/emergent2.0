@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { Menu, Columns2, LayoutPanelLeft, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -61,6 +61,7 @@ function WorkspaceInner() {
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(true);
   const [credits, setCredits] = useState(10);
   const [initialPromptSent, setInitialPromptSent] = useState(false);
+  const initialPromptSentRef = useRef(false);
   const [generationStep, setGenerationStep] = useState<string | null>(null);
 
   // Load local state
@@ -108,7 +109,8 @@ function WorkspaceInner() {
   // Send initial prompt from URL once
   useEffect(() => {
     const prompt = searchParams?.get('prompt');
-    if (prompt && !initialPromptSent && messages.length === 0) {
+    if (prompt && !initialPromptSentRef.current && messages.length === 0) {
+      initialPromptSentRef.current = true;
       setInitialPromptSent(true);
       // Small delay for smooth UX
       setTimeout(() => {
